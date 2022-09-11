@@ -145,7 +145,7 @@ pushd Python-${PYTHON_VERSION}
 patch -p1 < ${ROOT}/patch-apple-cross.patch
 
 # This patch is slightly different on Python 3.10+.
-if [ "${PYTHON_MAJMIN_VERSION}" = "3.10" ]; then
+if [[ "${PYTHON_MAJMIN_VERSION}" = "3.10" || "${PYTHON_MAJMIN_VERSION}" = "3.11" ]]; then
     patch -p1 < ${ROOT}/patch-xopen-source-ios.patch
 else
     patch -p1 < ${ROOT}/patch-xopen-source-ios-legacy.patch
@@ -192,7 +192,36 @@ EOF
 
 # We build all extensions statically. So remove the auto-generated make
 # rules that produce shared libraries for them.
-patch -p1 << "EOF"
+
+if [ "${PYTHON_MAJMIN_VERSION}" = "3.11" ]; then
+    patch -p1 << "EOF"
+diff --git a/Modules/makesetup b/Modules/makesetup
+index 08303814c8..f24b380b85 100755
+--- a/Modules/makesetup
++++ b/Modules/makesetup
+@@ -273,19 +273,6 @@ sed -e 's/[ 	]*#.*//' -e '/^[ 	]*$/d' |
+ 		case $doconfig in
+ 		yes)	OBJS="$OBJS $objs";;
+ 		esac
+-		for mod in $mods
+-		do
+-			file="$srcdir/$mod\$(EXT_SUFFIX)"
+-			case $doconfig in
+-			no)
+-				SHAREDMODS="$SHAREDMODS $file"
+-				BUILT_SHARED="$BUILT_SHARED $mod"
+-				;;
+-			esac
+-			rule="$file: $objs"
+-			rule="$rule; \$(BLDSHARED) $objs $libs $ExtraLibs -o $file"
+-			echo "$rule" >>$rulesf
+-		done
+ 	done
+ 
+ 	case $SHAREDMODS in
+EOF
+else
+    patch -p1 << "EOF"
 diff --git a/Modules/makesetup b/Modules/makesetup
 --- a/Modules/makesetup
 +++ b/Modules/makesetup
@@ -219,6 +248,7 @@ diff --git a/Modules/makesetup b/Modules/makesetup
  	'')	;;
  	*)	DEFS="SHAREDMODS=$SHAREDMODS$NL$DEFS";;
 EOF
+fi
 
 # The default build rule for the macOS dylib doesn't pick up libraries
 # from modules / makesetup. So patch it accordingly.
@@ -403,7 +433,8 @@ EOF
 fi
 
 # iOS doesn't have system(). Teach posixmodule.c about that.
-if [ "${PYTHON_MAJMIN_VERSION}" != "3.8" ]; then
+# Python 3.11 makes this a configure time check, so we don't need the patch there.
+if [[ "${PYTHON_MAJMIN_VERSION}" = "3.9" || "${PYTHON_MAJMIN_VERSION}" = "3.10" ]]; then
     patch -p1 <<EOF
 diff --git a/Modules/posixmodule.c b/Modules/posixmodule.c
 index 12f72f525f..4503c5fc60 100644
@@ -424,6 +455,17 @@ index 12f72f525f..4503c5fc60 100644
 
  /*[clinic input]
 EOF
+fi
+
+# Python 3.11 has configure support for configuring extension modules. We really,
+# really, really want to use this feature because it looks promising. But at the
+# time we added this code the functionality didn't support all extension modules
+# nor did it easily support static linking, including static linking of extra
+# libraries (which appears to be a limitation of `makesetup`). So for now we
+# disable the functionality and require our auto-generated Setup.local to provide
+# everything.
+if [ "${PYTHON_MAJMIN_VERSION}" = "3.11" ]; then
+    patch -p1 < ${ROOT}/patch-configure-disable-stdlib-mod.patch
 fi
 
 # We patched configure.ac above. Reflect those changes.

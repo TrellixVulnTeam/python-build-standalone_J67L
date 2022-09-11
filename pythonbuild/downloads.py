@@ -61,6 +61,15 @@ DOWNLOADS = {
         "license_file": "LICENSE.cpython.txt",
         "python_tag": "cp310",
     },
+    "cpython-3.11": {
+        "url": "https://www.python.org/ftp/python/3.11.0/Python-3.11.0rc1.tar.xz",
+        "size": 19815524,
+        "sha256": "53a5377c37a8a2c6da075b14eb9d63374579f7f3c718fa20f0a1fbb0e94a922b",
+        "version": "3.11.0rc1",
+        "licenses": ["Python-2.0", "CNRI-Python"],
+        "license_file": "LICENSE.cpython.txt",
+        "python_tag": "cp311",
+    },
     "gdbm": {
         "url": "https://ftp.gnu.org/gnu/gdbm/gdbm-1.21.tar.gz",
         "size": 1005982,

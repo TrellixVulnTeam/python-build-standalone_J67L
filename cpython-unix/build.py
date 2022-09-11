@@ -691,6 +691,7 @@ def build_cpython(
     entry_name = "cpython-%s" % version
     entry = DOWNLOADS[entry_name]
     python_version = entry["version"]
+    python_majmin = ".".join(python_version.split(".")[0:2])
 
     python_archive = download_entry(entry_name, DOWNLOADS_PATH)
     setuptools_archive = download_entry("setuptools", DOWNLOADS_PATH)
@@ -701,12 +702,16 @@ def build_cpython(
     ).open("rb") as fh:
         static_modules_lines = [l.rstrip() for l in fh if not l.startswith(b"#")]
 
-    with get_target_support_file(
-        SUPPORT, "disabled-static-modules", version, host_platform, target_triple
-    ).open("rb") as fh:
-        disabled_static_modules = {
-            l.strip() for l in fh if l.strip() and not l.strip().startswith(b"#")
-        }
+    # Handled as configure args in 3.11+.
+    if python_majmin == "3.11":
+        disabled_static_modules = {}
+    else:
+        with get_target_support_file(
+            SUPPORT, "disabled-static-modules", version, host_platform, target_triple
+        ).open("rb") as fh:
+            disabled_static_modules = {
+                l.strip() for l in fh if l.strip() and not l.strip().startswith(b"#")
+            }
 
     setup = derive_setup_local(
         static_modules_lines,
@@ -1157,7 +1162,7 @@ def main():
                 extra_archives=extra_archives,
             )
 
-        elif action in ("cpython-3.8", "cpython-3.9", "cpython-3.10"):
+        elif action in ("cpython-3.8", "cpython-3.9", "cpython-3.10", "cpython-3.11"):
             build_cpython(
                 settings,
                 client,

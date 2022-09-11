@@ -160,11 +160,15 @@ def write_triples_makefiles(
                     % (entry, DOWNLOADS[entry]["version"], host_platform)
                 )
 
-                for support_file in (
-                    "disabled-static-modules",
+                support_files = [
                     "required-extensions",
                     "static-modules",
-                ):
+                ]
+
+                if python != "3.11":
+                    support_files.append("disabled-static-modules")
+
+                for support_file in support_files:
                     path = get_target_support_file(
                         support_search_dir, support_file, python, host_platform, triple
                     )
